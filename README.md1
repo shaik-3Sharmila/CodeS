@@ -1,17 +1,63 @@
-<!-- resources/templates/index.html -->
-<!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <title>Link Shortener</title>
-</head>
-<body>
-    <h1>Link Shortener</h1>
-    <form action="/shorten" method="post">
-        <label for="originalURL">Enter URL:</label>
-        <input type="url" name="originalURL" required>
-        <button type="submit">Shorten</button>
-    </form>
-</body>
-</html>
-# CodeS
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.view.RedirectView;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@SpringBootApplication
+public class LinkShortenerApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(LinkShortenerApplication.class, args);
+    }
+}
+
+@Controller
+class LinkController {
+
+    private Map<String, String> shortToOriginal = new HashMap<>();
+    private Map<String, Long> shortToTimestamp = new HashMap<>();
+
+    @GetMapping("/")
+    public String index() {
+        return "index";
+    }
+
+    @PostMapping("/shorten")
+    public String shortenURL(@RequestParam String originalURL) {
+        String shortURL = generateShortURL();
+        shortToOriginal.put(shortURL, originalURL);
+        shortToTimestamp.put(shortURL, System.currentTimeMillis());
+        return "redirect:/";
+    }
+
+    @GetMapping("/{shortURL}")
+    public RedirectView redirectToOriginal(@PathVariable String shortURL) {
+        if (shortToOriginal.containsKey(shortURL)) {
+            long timestamp = shortToTimestamp.get(shortURL);
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - timestamp <= 5 * 60 * 1000) { // 5 mins validity
+                return new RedirectView(shortToOriginal.get(shortURL));
+            } else {
+                // Handle expired URL
+                return new RedirectView("/expired");
+            }
+        } else {
+            // Handle non-existent URL
+            return new RedirectView("/notfound");
+        }
+    }
+
+    private String generateShortURL() {
+        // Generate a short URL using a specific logic
+        // For simplicity, you can use a random string or a counter
+        // This should involve a better algorithm in a real implementation
+        return "shortURL";
+    }
+}
